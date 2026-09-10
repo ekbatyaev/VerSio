@@ -1,0 +1,1 @@
+![Архитектура сервиса](project_architecture.png)

@@ -1,3 +1,6 @@
 .idea/
 /links.md
 /Проект VerSio.drawio
+/.env
+/src/temp_files
+/src/__pycache__

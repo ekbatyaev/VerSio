@@ -2,7 +2,7 @@ import asyncio
 import zipfile
 from pathlib import Path
 from typing import Callable
-from src.models import Book
+from src.models import Book, EpubBook
 from src.settings import settings, logger
 from src.parser.formats import epub
 
@@ -30,12 +30,14 @@ def _decode_epub(path: Path) -> Book:
         with zipfile.ZipFile(path) as zf:
             opf_path = epub.find_opf(zf)
             opf = epub.read_xml(zf, opf_path)
-            return Book(
+            return EpubBook(
+                file_type=".epub",
                 source_path=path,
                 opf_path=opf_path,
-                chapters=epub.read_chapters(opf, opf_path),
+                chapters=epub.read_chapters(zf, opf, opf_path),
                 **epub.read_metadata(opf),
             )
+
     except FileNotFoundError as e:
         raise DecodeError(f"Файл не найден: {path}") from e
     except zipfile.BadZipFile as e:
@@ -70,6 +72,7 @@ async def main():
     print("Главы в порядке чтения:")
     for chapter in book.chapters:
         print("  ", chapter)
+        print(chapter.tree())
 
 if __name__ == "__main__":
     asyncio.run(main())

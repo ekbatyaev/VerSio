@@ -2,7 +2,7 @@ import asyncio
 import zipfile
 from pathlib import Path
 from typing import Callable
-from src.models import Book
+from src.models import EpubBook
 from src.settings import settings, logger
 from src.parser.formats import epub
 

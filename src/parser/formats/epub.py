@@ -3,7 +3,7 @@ from io import BytesIO
 import posixpath
 from urllib.parse import unquote
 from lxml import etree
-from src.models import EpubChapter
+from src.models import EpubChapter, BODY_RE
 from src.settings import logger
 
 NS = {
@@ -18,24 +18,25 @@ XML_PARSER = etree.XMLParser(resolve_entities=False)
 class EpubDecodeError(Exception):
     """Файл не удалось разобрать: битый архив, нет нужных файлов, невалидный XML."""
 
-def catching_info(el) -> dict:
-    """Элемент lxml -> словарь с теми же пятью составляющими."""
-    return {
-        "tag": el.tag if isinstance(el.tag, str) else type(el).__name__,
-        "attrib": dict(el.attrib),
-        "text": el.text,
-        "tail": el.tail,
-        "children": [catching_info(child) for child in el],
-    }
+def read_bytes(zf: zipfile.ZipFile, name: str) -> bytes:
+    """Файл из архива байт в байт."""
+    try:
+        return zf.read(name)
+    except KeyError as e:
+        raise EpubDecodeError(f"В архиве нет файла {name}") from e
+
+
+def parse_xml(data: bytes, name: str) -> etree._ElementTree:
+    """Разбирает уже прочитанные байты. data при этом не меняется."""
+    try:
+        return etree.parse(BytesIO(data), XML_PARSER)
+    except etree.XMLSyntaxError as e:
+        raise EpubDecodeError(f"Невалидный XML в {name}: {e}") from e
+
 
 def read_xml(zf: zipfile.ZipFile, name: str) -> etree._ElementTree:
     """Читает XML-файл из архива как есть, ничего не пересобирая."""
-    try:
-        return etree.parse(BytesIO(zf.read(name)), XML_PARSER)
-    except KeyError as e:
-        raise EpubDecodeError(f"В архиве нет файла {name}") from e
-    except etree.XMLSyntaxError as e:
-        raise EpubDecodeError(f"Невалидный XML в {name}: {e}") from e
+    return parse_xml(read_bytes(zf, name), name)
 
 
 def find_opf(zf: zipfile.ZipFile) -> str:
@@ -91,14 +92,19 @@ def read_chapters(zf: zipfile.ZipFile, opf: etree._ElementTree, opf_path: str) -
         href = unquote(item.get("href", ""))
         path = posixpath.normpath(posixpath.join(opf_dir, href))
 
-        tree = read_xml(zf, path)            # заодно проверяем, что XML валиден
+        source = read_bytes(zf, path)
+        tree = parse_xml(source, path)       # заодно проверяем, что XML валиден
+
+        if not BODY_RE.search(source):
+            raise EpubDecodeError(f"В {path} не найден <body>…</body>")
+
         chapter = EpubChapter(
             index=len(chapters),
             path=path,
             manifest_id=item.get("id"),
             linear=itemref.get("linear", "yes") != "no",
             title=_chapter_title(tree),
-            source=zf.read(path),
+            source=source,
         )
         logger.debug(f"[{chapter.index}] {chapter.path}: {chapter.title!r}")
         chapters.append(chapter)

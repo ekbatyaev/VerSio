@@ -71,8 +71,8 @@ async def main():
     print("OPF:     ", book.opf_path)
     print("Главы в порядке чтения:")
     for chapter in book.chapters:
-        print("  ", chapter)
-        print(chapter.tree())
+        print(chapter.title)
+        print(chapter.body())
 
 if __name__ == "__main__":
     asyncio.run(main())

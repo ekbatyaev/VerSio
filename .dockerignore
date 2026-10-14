@@ -1,0 +1,8 @@
+.git
+.idea
+.env
+models
+**/__pycache__
+**/.DS_Store
+*.drawio
+*.png

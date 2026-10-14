@@ -55,9 +55,9 @@ def _extract_json(content: str) -> Any:
 class LLMClient:
     api_key: str = settings.llm_api_key
     api_base: str = settings.llm_base_url
-    model_name: str = settings.llm_model_name or "Qwen3.5-35B"
-    max_tokens: int = 30000
-    temperature: float = 0.8
+    model_name: str = settings.llm_model_name
+    max_tokens: int = 16000
+    temperature: float = 0.2
     request_timeout: float = settings.llm_timeout
     max_retries: int = 3
     system_prompt: str = ""
@@ -96,7 +96,10 @@ class LLMClient:
             "chat_template_kwargs": {"enable_thinking": enable_thinking}
         }
         if guided_json is not None:
-            payload["guided_json"] = guided_json
+            payload["response_format"] = {
+                "type": "json_schema",
+                "json_schema": {"name": "result", "schema": guided_json},
+            }
         return payload
 
     async def send_request(
@@ -140,21 +143,21 @@ class LLMClient:
 
                 except httpx.TimeoutException as e:
                     last_error = e
-                    logger.warning("Таймаут на попытке %s/%s", attempt, self.max_retries)
+                    logger.warning("Таймаут на попытке {}/{}".format(attempt, self.max_retries))
 
                 except httpx.HTTPError as e:
                     last_error = e
                     logger.warning(
-                        "Ошибка запроса на попытке %s/%s: %s", attempt, self.max_retries, e
+                        "Ошибка запроса на попытке {}/{}: {}".format(attempt, self.max_retries, e)
                     )
 
                 except LLMResponseParseError as e:
                     last_error = e
                     logger.warning(
-                        "Ошибка парсинга ответа на попытке %s/%s: %s",
+                        "Ошибка парсинга ответа на попытке {}/{}: {}".format(
                         attempt,
                         self.max_retries,
-                        e,
+                        e)
                     )
 
         raise LLMRequestError(

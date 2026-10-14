@@ -1,0 +1,17 @@
+services:
+  app:
+    build: .
+    env_file: .env
+    volumes:
+      - models:/srv/models   # модель живёт здесь между запусками
+      - ./src:/srv/      # правки кода без пересборки образа
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+volumes:
+  models:

@@ -11,6 +11,7 @@ async def _get_translated_book(file_path: str | Path):
     decoded_book = await file_decoder(path)
     # Отправка книги в модуль ИИ для первода
     result_book = await ai_process(decoded_book)
+
     # Кодирование книги и отдача ее пользователю
 
     return "completed"

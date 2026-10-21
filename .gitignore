@@ -2,7 +2,7 @@
 /links.md
 /Проект VerSio.drawio
 /.env
-/src/temp_files
+/src/backend/temp_files
 /src/__pycache__
 # macOS
 .DS_Store

@@ -15,7 +15,7 @@ class Settings(BaseSettings):
 
     supported_formats: str
 
-    temp_files_path: Path = BASE_DIR / "src" / "temp_files"
+    temp_files_path: Path = BASE_DIR / "src" / "backend" / "temp_files"
     models_path: Path = BASE_DIR / "models"
 
     # Модель: репозиторий, файл и закрепление версии
@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     llm_extra_args: str = "-ngl 99 -ctk q8_0 -ctv q8_0"
 
     # Клиент
-    llm_base_url: str = "http://127.0.0.1"
+    llm_base_url: str = "http://127.0.0.1:8080/v1"
     llm_api_key: str = "none"
     llm_model_name: str = "gemma-4-26b-a4b"
     llm_timeout: float = 600

@@ -3,7 +3,7 @@ from io import BytesIO
 import posixpath
 from urllib.parse import unquote
 from lxml import etree
-from src.models import EpubChapter, BODY_RE
+from src.schemas import EpubChapter, BODY_RE
 from src.settings import logger
 
 NS = {

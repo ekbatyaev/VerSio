@@ -77,10 +77,11 @@ class LLMClient:
         guided_json: Optional[dict] = None,
         system_prompt: Optional[str] = None,
         enable_thinking: bool = False,
+        temperature: float = None
     ) -> dict:
         payload = {
             "model": self.model_name,
-            "temperature": self.temperature,
+            "temperature": temperature or self.temperature,
             "max_tokens": self.max_tokens,
             "messages": [
                 {
@@ -107,6 +108,8 @@ class LLMClient:
         user_content: Any,
         guided_json: Optional[dict] = None,
         system_prompt: Optional[str] = None,
+        enable_thinking: bool = False,
+        temperature: float = None
     ) -> dict:
         """
         Отправляет запрос в LLM с retry-логикой и обработкой ошибок.
@@ -119,7 +122,7 @@ class LLMClient:
         """
         url = f"{self.api_base}/chat/completions"
         headers = self._headers()
-        payload = self._build_payload(user_content, guided_json, system_prompt)
+        payload = self._build_payload(user_content, guided_json, system_prompt, enable_thinking, temperature)
 
         last_error: Optional[Exception] = None
 

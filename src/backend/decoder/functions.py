@@ -2,9 +2,9 @@ import asyncio
 import zipfile
 from pathlib import Path
 from typing import Callable
-from src.models import Book, EpubBook
+from src.schemas import Book, EpubBook
 from src.settings import settings, logger
-from src.parser.formats import epub
+from src.backend.decoder.formats import epub
 
 Decoder = Callable[[Path], Book]
 DECODERS: dict[str, Decoder] = {}
@@ -42,6 +42,7 @@ def _decode_epub(path: Path) -> Book:
         raise DecodeError(f"Файл не найден: {path}") from e
     except zipfile.BadZipFile as e:
         raise DecodeError(f"{path.name} не открывается как ZIP — это не EPUB") from e
+
 
 async def file_decoder(file_path: str | Path) -> Book:
     path = Path(file_path)

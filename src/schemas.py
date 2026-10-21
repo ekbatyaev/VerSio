@@ -42,4 +42,4 @@ class EpubChapter(BaseModel):
 
 class EpubBook(Book):
     opf_path: str
-    chapters: list[EpubChapter] =field(default_factory = list)
+    chapters: list[EpubChapter] = field(default_factory = list)

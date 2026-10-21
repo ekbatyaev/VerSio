@@ -1,9 +1,10 @@
 import asyncio
 from typing import Callable, Awaitable
-from src.models import Book, EpubBook
-from src.settings import settings, logger
-from src.ai.models import EpubBodyTagsHiding
-from src.ai.formats.epub import process_tags
+from src.schemas import Book, EpubBook
+from src.settings import logger
+from src.backend.ai.schemas import EpubBodyTagsHiding
+from src.backend.ai.formats.epub import process_tags, restore_tags
+from src.backend.ai.agents.translator import translate_text
 
 Processor = Callable[[Book], Awaitable[Book]]
 PROCESSORS: dict[str, Processor] = {}
@@ -22,20 +23,25 @@ def register_processor(*extensions: str):
     return decorator
 
 @register_processor(".epub")
-async def _process_epub(book: EpubBook) -> EpubBook:
+async def _process_epub(book: EpubBook, language_to_translate: str) -> EpubBook:
     for chapter in book.chapters:
         body: str = chapter.body()
 
         tags_result:  EpubBodyTagsHiding = await process_tags(body)
+        restored_body = restore_tags(tags_result)
+        if restored_body != body:
+            logger.warning(f"Разметка в файле была заменена.\nСобранная версия:\n{restored_body}Оригинальная версия:\n{body}")
 
-        new_body = body  # ← сюда твоя обработка (перевод через LLM)
-
-
+        # Перевод файла с помощью ИИ
+        await translate_text(tags_result.text_segments, language_to_translate)
+        new_body = restored_body
+        # Окончание перевода файла с помощью ИИ
+        # Складываем главы обратно
         chapter.set_body(new_body)
 
     return book
 
-async def ai_process(book: Book) -> Book:
+async def ai_process(book: Book, language_to_translate: str) -> Book:
 
     processor = PROCESSORS.get(book.file_type)
 
@@ -45,7 +51,7 @@ async def ai_process(book: Book) -> Book:
 
     logger.info(f"Обрабатываю {book.source_path} как {book.file_type}")
 
-    return await processor(book)
+    return await processor(book, language_to_translate)
 
 async def main():
     pass

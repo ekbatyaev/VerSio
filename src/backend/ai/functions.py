@@ -33,8 +33,8 @@ async def _process_epub(book: EpubBook, language_to_translate: str) -> EpubBook:
             logger.warning(f"Разметка в файле была заменена.\nСобранная версия:\n{restored_body}Оригинальная версия:\n{body}")
 
         # Перевод файла с помощью ИИ
-        await translate_text(tags_result.text_segments, language_to_translate)
-        new_body = restored_body
+        await translate_text(tags_result.text_segments, "Russian", language_to_translate)
+        new_body = restore_tags(tags_result)
         # Окончание перевода файла с помощью ИИ
         # Складываем главы обратно
         chapter.set_body(new_body)

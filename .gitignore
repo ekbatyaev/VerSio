@@ -2,5 +2,25 @@
 /links.md
 /Проект VerSio.drawio
 /.env
-/src/temp_files
+/src/backend/temp_files
 /src/__pycache__
+# macOS
+.DS_Store
+**/.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.venv/
+venv/
+env/
+draft.md

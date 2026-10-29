@@ -13,7 +13,7 @@ class ProcessingError(Exception):
     """Файл не удалось обработать."""
 
 def register_processor(*extensions: str):
-    def decorator(func: Processor) -> Processor :
+    def decorator(func: Processor) -> Processor:
         for ext in extensions:
             ext = ext.lower()
             if ext in PROCESSORS:
@@ -27,10 +27,11 @@ async def _process_epub(book: EpubBook, language_to_translate: str) -> EpubBook:
     for chapter in book.chapters:
         body: str = chapter.body()
 
-        tags_result:  EpubBodyTagsHiding = await process_tags(body)
+        tags_result: EpubBodyTagsHiding = await process_tags(body)
         restored_body = restore_tags(tags_result)
         if restored_body != body:
-            logger.warning(f"Разметка в файле была заменена.\nСобранная версия:\n{restored_body}Оригинальная версия:\n{body}")
+            logger.warning(
+                f"Разметка в файле была заменена.\nСобранная версия:\n{restored_body}Оригинальная версия:\n{body}")
 
         # Перевод файла с помощью ИИ
         await translate_text(tags_result.text_segments, "Russian", language_to_translate)
@@ -58,6 +59,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
-
-

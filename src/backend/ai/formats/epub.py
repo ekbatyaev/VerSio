@@ -33,15 +33,15 @@ async def process_tags(body: str) -> EpubBodyTagsHiding:
             elif part.strip():
                 lead, text, trail = EDGE_WS_RE.fullmatch(part).groups()
                 tag_name = f"TEXT[{len(text_segments) + 1}]"
-                text_segments.append(TextSegment(tag_name = tag_name,
-                                                 original_text = text,
-                                                 translated_text = None))
+                text_segments.append(TextSegment(tag_name=tag_name,
+                                                 original_text=text,
+                                                 translated_text=None))
                 parts.append(f"{lead}{tag_name}{trail}")
             else:
                 parts.append(part)
 
-        return EpubBodyTagsHiding(markup_tags = markup_tags, text_segments = text_segments,
-                                  hided_tags_body = "".join(parts))
+        return EpubBodyTagsHiding(markup_tags=markup_tags, text_segments=text_segments,
+                                  hided_tags_body="".join(parts))
     except EpubTagsProcessingException as e:
         logger.exception(f"Ошибка составления тэгов для epub книги пользователя:\n{e}\nBody:\n{body}")
         raise EpubTagsProcessingException("Произошла ошибка обработки Epub файла, пожалуйста, проверьте битый ли файл.")

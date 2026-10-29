@@ -51,7 +51,8 @@ async def file_decoder(file_path: str | Path) -> Book:
     decoders_set = set(DECODERS.keys())
 
     if decoders_set != settings.supported_formats_set:
-        logger.warning(f"Описанные в .env форматы не совпадают с набором форматов декораторов: {decoders_set ^ settings.supported_formats_set}")
+        logger.warning(
+            f"Описанные в .env форматы не совпадают с набором форматов декораторов: {decoders_set ^ settings.supported_formats_set}")
 
     decoder = DECODERS.get(extension)
 
@@ -77,6 +78,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
-
-

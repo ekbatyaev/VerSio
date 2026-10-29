@@ -40,7 +40,7 @@ def _extract_json(content: str) -> Any:
     start = cleaned.find("{")
     end = cleaned.rfind("}")
     if start != -1 and end != -1 and end > start:
-        candidate = cleaned[start : end + 1]
+        candidate = cleaned[start: end + 1]
         try:
             return json.loads(candidate)
         except json.JSONDecodeError as e:

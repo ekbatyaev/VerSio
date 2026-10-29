@@ -10,7 +10,7 @@ class Book(BaseModel):
     file_type: str
     source_path: Path
     title: str | None = None
-    creators: list[str] = field(default_factory = list)
+    creators: list[str] = field(default_factory=list)
     language: str | None = None
     description: str | None = None
 
@@ -42,4 +42,4 @@ class EpubChapter(BaseModel):
 
 class EpubBook(Book):
     opf_path: str
-    chapters: list[EpubChapter] = field(default_factory = list)
+    chapters: list[EpubChapter] = field(default_factory=list)

@@ -52,7 +52,8 @@ async def file_decoder(file_path: str | Path) -> Book:
 
     if decoders_set != settings.supported_formats_set:
         logger.warning(
-            f"Описанные в .env форматы не совпадают с набором форматов декораторов: {decoders_set ^ settings.supported_formats_set}")
+            f"Описанные в .env форматы не совпадают с набором форматов декораторов:"
+            f" {decoders_set ^ settings.supported_formats_set}")
 
     decoder = DECODERS.get(extension)
 

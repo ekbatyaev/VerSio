@@ -50,7 +50,8 @@ async def file_encoder(book: Book, target: Path | None = None) -> Path:
     encoders_set = set(ENCODERS.keys())
     if encoders_set != settings.supported_formats_set:
         logger.warning(
-            f"Описанные в .env форматы не совпадают с набором форматов кодировщиков: {encoders_set ^ settings.supported_formats_set}")
+            f"Описанные в .env форматы не совпадают с набором форматов кодировщиков:"
+            f" {encoders_set ^ settings.supported_formats_set}")
 
     encoder = ENCODERS.get(book.file_type)
     if encoder is None:

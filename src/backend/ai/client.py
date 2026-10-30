@@ -56,7 +56,7 @@ class LLMClient:
     api_key: str = settings.llm_api_key
     api_base: str = settings.llm_base_url
     model_name: str = settings.llm_model_name
-    max_tokens: int = 16000
+    max_tokens: int = 32000
     temperature: float = 0.2
     request_timeout: float = settings.llm_timeout
     max_retries: int = 3
@@ -102,6 +102,15 @@ class LLMClient:
                 "json_schema": {"name": "result", "schema": guided_json},
             }
         return payload
+
+    async def count_tokens(self, text: str) -> int:
+        """Считает токены текста токенизатором модели (llama-server /tokenize)."""
+        url = self.api_base.removesuffix("/v1") + "/tokenize"
+        headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
+        async with httpx.AsyncClient(timeout=60) as http_client:
+            response = await http_client.post(url, json={"content": text}, headers=headers)
+            response.raise_for_status()
+            return len(response.json()["tokens"])
 
     async def send_request(
         self,

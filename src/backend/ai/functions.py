@@ -24,7 +24,7 @@ def register_processor(*extensions: str):
     return decorator
 
 @register_processor(".epub")
-async def _process_epub(book: EpubBook, language_from_translate:str = "Russian",
+async def _process_epub(book: EpubBook, language_from_translate: str = "Russian",
                         language_to_translate: str = "English") -> EpubBook:
     for chapter in book.chapters:
         body: str = chapter.body()

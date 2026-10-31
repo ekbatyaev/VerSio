@@ -63,8 +63,8 @@ async def process_tags(body: str) -> EpubBodyTagsHiding:
                     text_segments.append(TextSegment(tag_name=tag_name,
                                                          original_text=piece,
                                                          translated_text=None))
-                    part+=f"{tag_name}"
-                part+=f"{trail}"
+                    part + =f"{tag_name}"
+                part += f"{trail}"
                 parts.append(part)
             else:
                 parts.append(part)

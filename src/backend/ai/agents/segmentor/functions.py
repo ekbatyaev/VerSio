@@ -4,14 +4,13 @@ from src.backend.ai.agents.segmentor.task import cut_pieces
 import numpy as np
 import spacy
 
+nlp = spacy.load("ru_core_news_md")  # нужна модель с векторами
+
 def format_window(segments: list[TextSegment], start: int, end: int) -> str:
     return "".join(format_segment(segments[i]) for i in range(start, end))
 
 def format_segment(segment: TextSegment) -> str:
     return f"{segment.tag_name} {segment.original_text}\n"
-
-
-nlp = spacy.load("ru_core_news_md")  # нужна модель с векторами
 
 def can_cut_after(text: str) -> bool:
     """Резать можно только после законченной фразы."""
@@ -31,31 +30,15 @@ def find_best_cut(segments: list[TextSegment]) -> int:
     candidates = [i for i in range(len(segments) - 1) if can_cut_after(segments[i].original_text)]
     return max(candidates or range(len(segments) - 1), key=gap)
 
-
-def split_into_sentences(segment: TextSegment) -> list[TextSegment]:
-    sentences = [s.text for s in nlp(segment.original_text).sents]
-    return [TextSegment(tag_name=f"{segment.tag_name}#{k}", original_text=t, translated_text=None)
-            for k, t in enumerate(sentences, 1)]
-
-
-async def retrieve_chapter_texts(segments: list[TextSegment], budget: int) -> list[AddonChapterPartsInfo]:
+async def cut_chapter_into_parts(segments: list[TextSegment], budget: int) -> list[AddonChapterPartsInfo]:
     text = format_window(segments, 0, len(segments))
 
-    # 1. Влезает — отдаём модели
     if await client.count_tokens(text) <= budget:
         return await cut_pieces([s.tag_name for s in segments], text)
 
-    # 2. Один абзац не влезает — делим на предложения
-    if len(segments) == 1:
-        sentences = split_into_sentences(segments[0])
-        if len(sentences) == 1:
-            return await cut_pieces([segments[0].tag_name], text)
-        return await retrieve_chapter_texts(sentences, budget)
-
-    # 3. Режем по смысловой границе и повторяем для обеих половин
     cut = find_best_cut(segments)
-    first = await retrieve_chapter_texts(segments[: cut + 1], budget)
-    second = await retrieve_chapter_texts(segments[cut + 1:], budget)
+    first = await cut_chapter_into_parts(segments[: cut + 1], budget)
+    second = await cut_chapter_into_parts(segments[cut + 1:], budget)
     return first + second
 
 if __name__ == "__main__":

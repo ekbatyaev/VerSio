@@ -71,8 +71,9 @@ SYSTEM_PROMPT: Final[str] = """\
 """
 
 
-async def translate_segments(texts_to_translate: list[TextSegment], language_from_translate: str,
-                             language_to_translate: str, temperature: float | None = None,
+async def translate_segments(texts_to_translate: list[TextSegment],
+                             language_from_translate: str, language_to_translate: str ,
+                             context: str = "", specific: str = "", temperature: float | None = None,
                              book_info: str = "", retries: int = 2) -> TranslationStatus:
     """
     Переводит один батч сегментов. Перевод записывается в text_segment.translated_text.

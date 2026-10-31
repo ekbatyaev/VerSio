@@ -1,10 +1,11 @@
 import asyncio
 from typing import Callable, Awaitable
 from src.schemas import Book, EpubBook
-from src.settings import logger
-from src.backend.ai.schemas import EpubBodyTagsHiding
+from src.settings import logger, settings
+from src.backend.ai.schemas import EpubBodyTagsHiding, AddonChapterPartsInfo
 from src.backend.ai.formats.epub import process_tags, restore_tags
-from src.backend.ai.agents.translator import translate_text
+from src.backend.ai.agents.translator.functions import translate_text
+from src.backend.ai.agents.segmentor.functions import cut_chapter_into_parts
 
 Processor = Callable[[Book], Awaitable[Book]]
 PROCESSORS: dict[str, Processor] = {}
@@ -23,7 +24,8 @@ def register_processor(*extensions: str):
     return decorator
 
 @register_processor(".epub")
-async def _process_epub(book: EpubBook, language_to_translate: str) -> EpubBook:
+async def _process_epub(book: EpubBook, language_from_translate:str = "Russian",
+                        language_to_translate: str = "English") -> EpubBook:
     for chapter in book.chapters:
         body: str = chapter.body()
 
@@ -33,8 +35,16 @@ async def _process_epub(book: EpubBook, language_to_translate: str) -> EpubBook:
             logger.warning(
                 f"Разметка в файле была заменена.\nСобранная версия:\n{restored_body}Оригинальная версия:\n{body}")
 
-        # Перевод файла с помощью ИИ
-        await translate_text(tags_result.text_segments, "Russian", language_to_translate)
+        # Собираем метаданные о главе, делим ее на более мелкие кусочки для осмысленного перевода
+        chapter_metadata_info: list[AddonChapterPartsInfo] = await cut_chapter_into_parts(tags_result.text_segments,
+                                                             settings.llm_max_chapter_segmentor_tokens)
+        for part_info in chapter_metadata_info:
+            # Перевод файла с помощью ИИ
+
+            await translate_text(text_segments=tags_result.text_segments,
+                                 language_from_translate=language_from_translate,
+                                 language_to_translate=language_to_translate,
+                                 context=context, specific=specific)
         new_body = restore_tags(tags_result)
         # Окончание перевода файла с помощью ИИ
         # Складываем главы обратно

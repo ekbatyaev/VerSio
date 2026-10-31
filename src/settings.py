@@ -36,6 +36,12 @@ class Settings(BaseSettings):
     llm_model_name: str = "gemma-4-26b-a4b"
     llm_timeout: float = 600
 
+    llm_max_chapter_segmentor_tokens: int = 24000
+    llm_max_translator_tokens: int = 14000
+
+    max_characters_text_tag: int = 400
+
+
     @property
     def supported_formats_set(self) -> set[str]:
         return {ext.strip().lower() for ext in self.supported_formats.split(",") if ext.strip()}

@@ -65,9 +65,11 @@ async def process_tags(body: str) -> EpubBodyTagsHiding:
                 start_index = len(text_segments)
                 for i, piece in enumerate(divided_text_pieces, start=1):
                     tag_name = f"TEXT[{start_index + i}]"
-                    text_segments.append(TextSegment(tag_name=tag_name,
-                                                         original_text=piece,
-                                                         translated_text=None))
+                    text_segments.append(TextSegment(
+                        tag_name=tag_name,
+                        original_text=piece,
+                        translated_text=None
+                    ))
                     part += f"{tag_name}"
                 part += f"{trail}"
                 parts.append(part)

@@ -116,7 +116,7 @@ async def cut_pieces(
 
     for cut_index in sorted(cuts):
         batches.append(TranslateBatch(
-            text_segments=text_segments[start : cut_index + 1],
+            text_segments=text_segments[start: cut_index + 1],
             context=context,
             specific=specific,
         ))

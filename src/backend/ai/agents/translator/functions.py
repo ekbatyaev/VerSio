@@ -6,6 +6,7 @@ from src.backend.ai.agents.translator.task import translate_segments
 
 translation_semaphore = asyncio.Semaphore(settings.max_translator_workers)
 
+
 async def translate_text(batches: list[TranslateBatch],
                          language_from: str, language_to: str,
                          book_description: str | None, temperature: float | None) -> TranslationStatus:
@@ -22,7 +23,7 @@ async def translate_text(batches: list[TranslateBatch],
                 context=batch.context,
                 specific=batch.specific,
                 book_description=book_description,
-                temperature = temperature
+                temperature=temperature
             )
         done_segments += len(batch.text_segments)
         logger.info(f"Батч {batch_number}/{len(batches)}: переведено {status.processed} из {len(batch.text_segments)}, "

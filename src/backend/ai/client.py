@@ -6,6 +6,7 @@ from typing import Any, Optional
 import httpx
 from src.settings import settings, logger
 
+
 class LLMClientError(Exception):
     """Базовое исключение клиента."""
 
@@ -166,10 +167,11 @@ class LLMClient:
                 except LLMResponseParseError as e:
                     last_error = e
                     logger.warning(
-                        "Ошибка парсинга ответа на попытке {}/{}: {}".format(
-                        attempt,
-                        self.max_retries,
-                        e)
+                        "Ошибка парсинга ответа на попытке {}/{}: {}".format
+                            (
+                            attempt,
+                            self.max_retries,
+                            e)
                     )
 
         raise LLMRequestError(

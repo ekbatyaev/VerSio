@@ -8,7 +8,7 @@ from src.backend.ai.functions import ai_process
 
 async def _get_translated_book(file_path: str | Path, language_from_translate: str,
                                language_to_translate: str,
-    temperature_of_translation: float = 0.4):
+                                temperature_of_translation: float = 0.4):
     path = Path(file_path)
     # Декодирование книги
     decoded_book = await file_decoder(path)
@@ -20,8 +20,10 @@ async def _get_translated_book(file_path: str | Path, language_from_translate: s
 
     return "completed"
 
+
 async def main():
     print(await _get_translated_book(settings.temp_files_path / "Molot_Vulkana.epub"))
+
 
 if __name__ == "__main__":
     asyncio.run(main())

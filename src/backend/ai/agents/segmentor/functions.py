@@ -6,6 +6,7 @@ import spacy
 
 nlp = spacy.load("ru_core_news_md")  # нужна модель с векторами
 
+
 def format_window(segments: list[TextSegment], start: int, end: int) -> str:
     return "".join(format_segment(segments[i]) for i in range(start, end))
 

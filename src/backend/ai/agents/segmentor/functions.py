@@ -1,5 +1,5 @@
 from src.backend.ai.client import client
-from src.backend.ai.schemas import TextSegment, AddonChapterPartsInfo
+from src.backend.ai.schemas import TextSegment, TranslateBatch
 from src.backend.ai.agents.segmentor.task import cut_pieces
 import numpy as np
 import spacy
@@ -9,8 +9,10 @@ nlp = spacy.load("ru_core_news_md")  # нужна модель с вектора
 def format_window(segments: list[TextSegment], start: int, end: int) -> str:
     return "".join(format_segment(segments[i]) for i in range(start, end))
 
+
 def format_segment(segment: TextSegment) -> str:
     return f"{segment.tag_name} {segment.original_text}\n"
+
 
 def can_cut_after(text: str) -> bool:
     """Резать можно только после законченной фразы."""
@@ -30,16 +32,18 @@ def find_best_cut(segments: list[TextSegment]) -> int:
     candidates = [i for i in range(len(segments) - 1) if can_cut_after(segments[i].original_text)]
     return max(candidates or range(len(segments) - 1), key=gap)
 
-async def cut_chapter_into_parts(segments: list[TextSegment], budget: int) -> list[AddonChapterPartsInfo]:
+
+async def cut_chapter_into_parts(segments: list[TextSegment], budget: int) -> list[TranslateBatch]:
     text = format_window(segments, 0, len(segments))
 
     if await client.count_tokens(text) <= budget:
-        return await cut_pieces([s.tag_name for s in segments], text)
+        return await cut_pieces(segments_text=text, text_segments=text_segments)
 
     cut = find_best_cut(segments)
     first = await cut_chapter_into_parts(segments[: cut + 1], budget)
     second = await cut_chapter_into_parts(segments[cut + 1:], budget)
     return first + second
+
 
 if __name__ == "__main__":
     import asyncio
@@ -92,4 +96,4 @@ if __name__ == "__main__":
                      TextSegment(tag_name='TEXT[10]', original_text='—\xa0Попробуйте снять для «Вулкана-3».',
                                  translated_text=None),
                      TextSegment(tag_name='TEXT[11]', original_text='—\xa0Попытаюсь.', translated_text=None)]
-    asyncio.run(retrieve_chapter_texts(text_segments, 100))
+    asyncio.run(cut_chapter_into_parts(text_segments, 100))

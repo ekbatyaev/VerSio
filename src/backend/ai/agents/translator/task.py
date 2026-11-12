@@ -1,7 +1,7 @@
 import json
 from typing import Final
 from src.backend.ai.client import client
-from src.settings import logger
+from src.settings import settings, logger
 from src.backend.ai.schemas import TextSegment
 from src.backend.ai.agents.translator.functions import TranslationStatus
 
@@ -27,7 +27,8 @@ SYSTEM_PROMPT: Final[str] = """\
 
 ВХОДНЫЕ ДАННЫЕ
 В сообщении пользователя: язык оригинала, целевой язык,
-сведения о книге (могут отсутствовать) и JSON-объект с фрагментами текста.
+сведения о книге (могут отсутствовать), контекст (может отсутствовать), специфика перевода этого сегмента текста
+ (может отсутствовать) и JSON-объект с фрагментами текста.
 Ключи объекта — идентификаторы TEXT[1], TEXT[2], …; значения — фрагменты одной главы в порядке чтения.
 Фрагменты получены разрезанием по тегам разметки. Поэтому фрагмент может быть целым абзацем, частью предложения,
 одним выделенным словом, заголовком, номером сноски или знаком препинания. Соседние фрагменты часто составляют
@@ -71,52 +72,53 @@ SYSTEM_PROMPT: Final[str] = """\
 """
 
 
-async def translate_segments(texts_to_translate: list[TextSegment],
-                             language_from_translate: str, language_to_translate: str,
-                             context: str = "", specific: str = "", temperature: float | None = None,
-                             book_info: str = "", retries: int = 2) -> TranslationStatus:
+async def translate_segments(texts: list[TextSegment],
+                             language_from: str, language_to: str,
+                             context: str, specific: str,
+                             book_description: str | None, temperature: float | None) -> TranslationStatus:
     """
     Переводит один батч сегментов. Перевод записывается в text_segment.translated_text.
     """
-    dictionary_of_translation = {text.tag_name: text.original_text for text in texts_to_translate}
+    dictionary_of_translation = {text.tag_name: text.original_text for text in texts}
     keys = list(dictionary_of_translation)
 
     user_content = [
         {
             "type": "text",
             "text": (
-                f"Информация про книгу:\n\n{book_info or 'Ничего не найдено.'}\n\n"
+                f"Информация про книгу:\n{book_description or 'Описания не найдено.'}\n"
+                f"Контекст предыдущего отрывка: {context}\n"
+                f"Важная для перевода информация: {specific}\n"
                 "---\n\n"
-                f"Язык оригинала: {language_from_translate}. Целевой язык: {language_to_translate}.\n"
-                "Вставки на других языках оставь без изменений.\n\n"
-                f"{json.dumps(dictionary_of_translation, ensure_ascii=False)}"
+                f"Язык оригинала: {language_from}. Целевой язык: {language_to}.\n"
+                f"Сегменты для перевода:\n{json.dumps(dictionary_of_translation, ensure_ascii=False)}"
             )
         }
     ]
 
     translated_text_segments: dict | None = None
-    for attempt in range(1, retries + 2):
+    for attempt in range(1, settings.translator_retries_count + 1):
         try:
             request_result: dict = await client.send_request(
                 system_prompt=SYSTEM_PROMPT,
                 guided_json=build_guided_json(keys),
                 user_content=user_content,
-                temperature=temperature,
+                temperature=temperature
             )
             translated_text_segments = request_result["translation"]
             missing = set(keys) - set(translated_text_segments)
             if not missing:
                 break
-            logger.warning("Попытка {}: в ответе не хватает ключей {}", attempt, sorted(missing))
+            logger.warning(f"Попытка {attempt}: в ответе не хватает ключей {sorted(missing)}")
         except Exception as e:
-            logger.exception("Попытка {}: ошибка при обработке запроса: {}", attempt, e)
+            logger.exception(f"Попытка {attempt}: ошибка при обработке запроса: {e}")
 
     if translated_text_segments is None:
-        return TranslationStatus(processed=0, error=len(texts_to_translate))
+        return TranslationStatus(processed=0, error=len(texts))
 
     processed = 0
     error = 0
-    for text_segment in texts_to_translate:
+    for text_segment in texts:
         if text_segment.tag_name in translated_text_segments:
             text_segment.translated_text = translated_text_segments[text_segment.tag_name]
             processed += 1

@@ -6,10 +6,11 @@ class TextSegment(BaseModel):
     original_text: str
     translated_text: Optional[str] = None
 
-class AddonChapterPartsInfo(BaseModel):
-    context: str
-    specific: str
-    cut_after_tag: str
+class TranslateBatch(BaseModel):
+    text_segments: list[TextSegment]
+
+    context: Optional[str] = None
+    specific: Optional[str] = None
 
 class EpubBodyTagsHiding(BaseModel):
     markup_tags: dict[str, str]

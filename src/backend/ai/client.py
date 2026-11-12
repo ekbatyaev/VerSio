@@ -57,7 +57,7 @@ class LLMClient:
     api_base: str = settings.llm_base_url
     model_name: str = settings.llm_model_name
     max_tokens: int = 32000
-    temperature: float = 0.2
+    temperature: float = 0.6
     request_timeout: float = settings.llm_timeout
     max_retries: int = 3
     system_prompt: str = ""

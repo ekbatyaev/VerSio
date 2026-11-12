@@ -1,6 +1,6 @@
 from typing import Final
 from src.backend.ai.client import client, LLMResponseParseError
-from src.backend.ai.schemas import AddonChapterPartsInfo
+from src.backend.ai.schemas import TranslateBatch, TextSegment
 from src.settings import logger
 
 SEGMENTER_PROMPT: Final[str] = """\
@@ -64,14 +64,26 @@ def build_cut_schema(allowed: list[str], max_cuts: int) -> dict:
 
 
 async def cut_pieces(
-    allowed_tags_name: list[str], texts_segments: str, max_cuts: int = 20
-) -> list[AddonChapterPartsInfo]:
-    """Возвращает разделенные по смыслу части главы."""
+    segments_text: str,
+    text_segments: list[TextSegment],
+    max_cuts: int = 20,
+) -> list[TranslateBatch]:
+    """Возвращает разделённые по смыслу части главы."""
+    if not text_segments:
+        return []
+
+    if len(text_segments) == 1:
+        return [TranslateBatch(text_segments=text_segments, context="", specific="")]
+
+    # Резать можно после любого сегмента, кроме последнего
+    allowed_tags_name = [segment.tag_name for segment in text_segments[:-1]]
+    max_cuts = min(max_cuts, len(allowed_tags_name))
+
     user_content = [{
         "type": "text",
         "text": (
             f"Разрешённые метки для разреза: {', '.join(allowed_tags_name)}\n\n"
-            f"Текстовые сегменты для смыслового разделения:\n\n{texts_segments}"
+            f"Текстовые сегменты для смыслового разделения:\n\n{segments_text}"
         ),
     }]
 
@@ -80,20 +92,53 @@ async def cut_pieces(
             system_prompt=SEGMENTER_PROMPT.format(max_cuts=max_cuts),
             guided_json=build_cut_schema(allowed_tags_name, max_cuts),
             user_content=user_content,
-            temperature=0.0,
+            temperature=0.1,
         )
     except Exception as e:
         logger.exception("Не удалось выбрать разрез")
         raise LLMResponseParseError("Ошибка запроса к модели") from e
 
-    # дедуп и сортировка по порядку в тексте — модель может перепутать
-    order = {tag: i for i, tag in enumerate(allowed_tags_name)}
-    seen: set[str] = set()
-    parts_info: list[AddonChapterPartsInfo] = []
-    for item in sorted(result["divider"], key=lambda d: order[d["cut_after_tag"]]):
-        if item["cut_after_tag"] in seen:
+    tag_to_index = {segment.tag_name: i for i, segment in enumerate(text_segments)}
+    last_index = len(text_segments) - 1
+
+    cuts: dict[int, dict] = {}
+    for item in result["divider"]:
+        index = tag_to_index.get(item["cut_after_tag"])
+        if index is None or index >= last_index:
+            logger.warning("Отброшен невалидный разрез: %s", item)
             continue
-        seen.add(item["cut_after_tag"])
-        logger.debug(item)
-        parts_info.append(AddonChapterPartsInfo(**item))
-    return parts_info
+        if index not in cuts:
+            cuts[index] = item
+
+    batches: list[TranslateBatch] = []
+    start = 0
+    context, specific = "", ""
+
+    for cut_index in sorted(cuts):
+        batches.append(TranslateBatch(
+            text_segments=text_segments[start : cut_index + 1],
+            context=context,
+            specific=specific,
+        ))
+        start = cut_index + 1
+        context = cuts[cut_index]["context"]
+        specific = cuts[cut_index]["specific"]
+
+    # Хвост: всё после последнего разреза. Если разрезов нет, это вся глава.
+    batches.append(TranslateBatch(
+        text_segments=text_segments[start:],
+        context=context,
+        specific=specific,
+    ))
+
+    # Проверка: нет пустых кусков, и вместе они покрывают все сегменты
+    total = sum(len(batch.text_segments) for batch in batches)
+    has_empty = any(not batch.text_segments for batch in batches)
+    if has_empty or total != len(text_segments):
+        logger.error(
+            "Некорректное разбиение: кусков=%d, сегментов в кусках=%d, всего сегментов=%d, разрезы=%s",
+            len(batches), total, len(text_segments), sorted(cuts),
+        )
+        raise LLMResponseParseError("Разбиение главы потеряло или продублировало сегменты")
+
+    return batches

@@ -40,7 +40,8 @@ class Settings(BaseSettings):
     llm_max_translator_tokens: int = 14000
 
     max_characters_text_tag: int = 400
-
+    max_translator_workers: int = 8
+    translator_retries_count: int = 2
 
     @property
     def supported_formats_set(self) -> set[str]:

@@ -45,7 +45,7 @@ class EpubChapter(BaseModel):
         """Подставляет новый <body> на место старого. Всё вне body не трогается."""
         m = BODY_RE.search(self.source)
         self.result = (
-            self.source[: m.start()] + new_body.encode("utf-8") + self.source[m.end() :]
+            self.source[: m.start()] + new_body.encode("utf-8") + self.source[m.end():]
         )
 
 

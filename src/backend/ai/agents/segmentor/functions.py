@@ -46,7 +46,7 @@ async def cut_chapter_into_parts(
 
     cut = find_best_cut(segments)
     first = await cut_chapter_into_parts(segments[: cut + 1], budget)
-    second = await cut_chapter_into_parts(segments[cut + 1 :], budget)
+    second = await cut_chapter_into_parts(segments[cut + 1:], budget)
     return first + second
 
 

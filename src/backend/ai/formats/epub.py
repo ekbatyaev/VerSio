@@ -10,19 +10,23 @@ SENTENCE_END_RE = re.compile(r"[.!?…;]+[\"'»”)\]]*(?=\s)")  # конец п
 SENSE_END_RE = re.compile(r"[:,]|\s[-–—](?=\s)")
 WORD_END_RE = re.compile(r"\s+")
 
+
 class EpubTagsProcessingException(BaseException):
     """Ошибка обработки тегов EPUB"""
+
 
 def restore_tags(hidden: EpubBodyTagsHiding) -> str:
     lookup = hidden.markup_tags | {s.tag_name: s.translated_text or s.original_text
                                    for s in hidden.text_segments}
     return PLACEHOLDER_RE.sub(lambda m: lookup[m.group()], hidden.hided_tags_body)
 
+
 def _last_cut(pattern: re.Pattern, text: str, limit: int) -> int | None:
     cut = None
     for m in pattern.finditer(text, 0, limit):  # ищем только в первых limit символах
         cut = m.end()
     return cut or None
+
 
 async def divider_of_text(text: str) -> list[str]:
     limit = settings.max_characters_text_tag
@@ -36,6 +40,7 @@ async def divider_of_text(text: str) -> list[str]:
         text = text[cut:]
     pieces.append(text)
     return pieces
+
 
 async def process_tags(body: str) -> EpubBodyTagsHiding:
     # Заменяет все тэги на простые TAG[№] в формате str, и

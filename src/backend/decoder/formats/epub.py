@@ -15,8 +15,10 @@ NS = {
 
 XML_PARSER = etree.XMLParser(resolve_entities=False)
 
+
 class EpubDecodeError(Exception):
     """Файл не удалось разобрать: битый архив, нет нужных файлов, невалидный XML."""
+
 
 def read_bytes(zf: zipfile.ZipFile, name: str) -> bytes:
     """Файл из архива байт в байт."""
@@ -55,7 +57,9 @@ def read_metadata(opf: etree._ElementTree) -> dict:
     def values(name: str) -> list[str]:
         if metadata is None:
             return []
-        return [" ".join(e.itertext()).strip() for e in metadata.iterfind(f"dc:{name}", NS)]
+        return [
+            " ".join(e.itertext()).strip() for e in metadata.iterfind(f"dc:{name}", NS)
+        ]
 
     def first(name: str) -> str | None:
         found = values(name)
@@ -68,6 +72,7 @@ def read_metadata(opf: etree._ElementTree) -> dict:
         "description": first("description"),
     }
 
+
 def _chapter_title(tree: etree._ElementTree) -> str | None:
     """Первый заголовок h1–h3, иначе <title>. Для логов и контекста перевода."""
     for tag in ("h1", "h2", "h3", "title"):
@@ -78,10 +83,15 @@ def _chapter_title(tree: etree._ElementTree) -> str | None:
                 return text
     return None
 
-def read_chapters(zf: zipfile.ZipFile, opf: etree._ElementTree, opf_path: str) -> list[EpubChapter]:
+
+def read_chapters(
+    zf: zipfile.ZipFile, opf: etree._ElementTree, opf_path: str
+) -> list[EpubChapter]:
     """Главы в порядке spine: путь, исходник и сведения о каждой."""
     opf_dir = posixpath.dirname(opf_path)
-    manifest = {item.get("id"): item for item in opf.iterfind("opf:manifest/opf:item", NS)}
+    manifest = {
+        item.get("id"): item for item in opf.iterfind("opf:manifest/opf:item", NS)
+    }
 
     chapters = []
     for itemref in opf.iterfind("opf:spine/opf:itemref", NS):
@@ -93,7 +103,7 @@ def read_chapters(zf: zipfile.ZipFile, opf: etree._ElementTree, opf_path: str) -
         path = posixpath.normpath(posixpath.join(opf_dir, href))
 
         source = read_bytes(zf, path)
-        tree = parse_xml(source, path)       # заодно проверяем, что XML валиден
+        tree = parse_xml(source, path)  # заодно проверяем, что XML валиден
 
         if not BODY_RE.search(source):
             raise EpubDecodeError(f"В {path} не найден <body>…</body>")

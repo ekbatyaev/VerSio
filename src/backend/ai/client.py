@@ -6,6 +6,7 @@ from typing import Any, Optional
 import httpx
 from src.settings import settings, logger
 
+
 class LLMClientError(Exception):
     """Базовое исключение клиента."""
 
@@ -56,8 +57,8 @@ class LLMClient:
     api_key: str = settings.llm_api_key
     api_base: str = settings.llm_base_url
     model_name: str = settings.llm_model_name
-    max_tokens: int = 16000
-    temperature: float = 0.2
+    max_tokens: int = 32000
+    temperature: float = 0.6
     request_timeout: float = settings.llm_timeout
     max_retries: int = 3
     system_prompt: str = ""
@@ -77,7 +78,7 @@ class LLMClient:
         guided_json: Optional[dict] = None,
         system_prompt: Optional[str] = None,
         enable_thinking: bool = False,
-        temperature: float = None
+        temperature: float = None,
     ) -> dict:
         payload = {
             "model": self.model_name,
@@ -86,7 +87,11 @@ class LLMClient:
             "messages": [
                 {
                     "role": "system",
-                    "content": system_prompt if system_prompt is not None else self.system_prompt,
+                    "content": (
+                        system_prompt
+                        if system_prompt is not None
+                        else self.system_prompt
+                    ),
                 },
                 {
                     "role": "user",
@@ -94,7 +99,7 @@ class LLMClient:
                 },
             ],
             "stream": False,
-            "chat_template_kwargs": {"enable_thinking": enable_thinking}
+            "chat_template_kwargs": {"enable_thinking": enable_thinking},
         }
         if guided_json is not None:
             payload["response_format"] = {
@@ -103,13 +108,27 @@ class LLMClient:
             }
         return payload
 
+    async def count_tokens(self, text: str) -> int:
+        """Считает токены текста токенизатором модели (llama-server /tokenize)."""
+        url = self.api_base.removesuffix("/v1") + "/tokenize"
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+        async with httpx.AsyncClient(timeout=60) as http_client:
+            response = await http_client.post(
+                url, json={"content": text}, headers=headers
+            )
+            response.raise_for_status()
+            return len(response.json()["tokens"])
+
     async def send_request(
         self,
         user_content: Any,
         guided_json: Optional[dict] = None,
         system_prompt: Optional[str] = None,
         enable_thinking: bool = False,
-        temperature: float = None
+        temperature: float = None,
     ) -> dict:
         """
         Отправляет запрос в LLM с retry-логикой и обработкой ошибок.
@@ -122,14 +141,18 @@ class LLMClient:
         """
         url = f"{self.api_base}/chat/completions"
         headers = self._headers()
-        payload = self._build_payload(user_content, guided_json, system_prompt, enable_thinking, temperature)
+        payload = self._build_payload(
+            user_content, guided_json, system_prompt, enable_thinking, temperature
+        )
 
         last_error: Optional[Exception] = None
 
         async with httpx.AsyncClient(timeout=self.request_timeout) as http_client:
             for attempt in range(1, self.max_retries + 1):
                 try:
-                    response = await http_client.post(url, json=payload, headers=headers)
+                    response = await http_client.post(
+                        url, json=payload, headers=headers
+                    )
                     response.raise_for_status()
 
                     data = response.json()
@@ -146,26 +169,30 @@ class LLMClient:
 
                 except httpx.TimeoutException as e:
                     last_error = e
-                    logger.warning("Таймаут на попытке {}/{}".format(attempt, self.max_retries))
+                    logger.warning(
+                        "Таймаут на попытке {}/{}".format(attempt, self.max_retries)
+                    )
 
                 except httpx.HTTPError as e:
                     last_error = e
                     logger.warning(
-                        "Ошибка запроса на попытке {}/{}: {}".format(attempt, self.max_retries, e)
+                        "Ошибка запроса на попытке {}/{}: {}".format(
+                            attempt, self.max_retries, e
+                        )
                     )
 
                 except LLMResponseParseError as e:
                     last_error = e
                     logger.warning(
                         "Ошибка парсинга ответа на попытке {}/{}: {}".format(
-                        attempt,
-                        self.max_retries,
-                        e)
+                            attempt, self.max_retries, e
+                        )
                     )
 
         raise LLMRequestError(
             f"Превышено количество попыток ({self.max_retries})"
         ) from last_error
+
 
 client = LLMClient()
 
@@ -173,7 +200,9 @@ if __name__ == "__main__":
 
     async def _main() -> None:
         result = await client.send_request(
-            user_content=[{"type": "text", "text": "Верни JSON с полем code = 'print(1)'"}],
+            user_content=[
+                {"type": "text", "text": "Верни JSON с полем code = 'print(1)'"}
+            ],
             guided_json={
                 "type": "object",
                 "properties": {"code": {"type": "string"}},

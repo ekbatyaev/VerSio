@@ -2,8 +2,10 @@ from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from loguru import logger
 
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 ENV_PATH = BASE_DIR / ".env"
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -36,11 +38,24 @@ class Settings(BaseSettings):
     llm_model_name: str = "gemma-4-26b-a4b"
     llm_timeout: float = 600
 
+    llm_max_chapter_segmentor_tokens: int = 24000
+    llm_max_translator_tokens: int = 14000
+
+    max_characters_text_tag: int = 400
+    max_translator_workers: int = 8
+    translator_retries_count: int = 2
+
     @property
     def supported_formats_set(self) -> set[str]:
-        return {ext.strip().lower() for ext in self.supported_formats.split(",") if ext.strip()}
+        return {
+            ext.strip().lower()
+            for ext in self.supported_formats.split(",")
+            if ext.strip()
+        }
+
 
 settings = Settings()
+
 
 if __name__ == "__main__":
     print(settings.model_dump())

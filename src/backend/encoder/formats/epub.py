@@ -6,6 +6,7 @@ import zipfile
 
 XML_PARSER = etree.XMLParser(resolve_entities=False)
 
+
 class EpubEncodeError(Exception):
     """Книгу не удалось собрать: глава не найдена в архиве или её XHTML невалиден."""
 
@@ -22,16 +23,22 @@ def write_epub(source: Path, target: Path, replacements: dict[str, bytes]) -> No
     try:
         with zipfile.ZipFile(source) as zin, zipfile.ZipFile(tmp, "w") as zout:
             if unknown := replacements.keys() - set(zin.namelist()):
-                raise EpubEncodeError(f"В архиве нет файлов: {', '.join(sorted(unknown))}")
+                raise EpubEncodeError(
+                    f"В архиве нет файлов: {', '.join(sorted(unknown))}"
+                )
 
             # mimetype обязан идти первым; sorted устойчив, остальной порядок не меняется
             for info in sorted(zin.infolist(), key=lambda i: i.filename != "mimetype"):
-                data = replacements[info.filename] if info.filename in replacements else zin.read(info)
-                info = copy.copy(info)               # не портим ZipInfo исходного архива
+                data = (
+                    replacements[info.filename]
+                    if info.filename in replacements
+                    else zin.read(info)
+                )
+                info = copy.copy(info)  # не портим ZipInfo исходного архива
                 if info.filename == "mimetype":
                     info.compress_type = zipfile.ZIP_STORED
                     info.extra = b""
                 zout.writestr(info, data)
-        os.replace(tmp, target)                      # атомарно: битый файл не появится под именем target
+        os.replace(tmp, target)  # атомарно: битый файл не появится под именем target
     finally:
         tmp.unlink(missing_ok=True)

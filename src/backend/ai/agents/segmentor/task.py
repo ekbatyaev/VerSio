@@ -3,7 +3,9 @@ from src.backend.ai.client import client, LLMResponseParseError
 from src.backend.ai.schemas import TranslateBatch, TextSegment
 from src.settings import logger
 
-SEGMENTER_PROMPT: Final[str] = """\
+SEGMENTER_PROMPT: Final[
+    str
+] = """\
 Ты — литературный редактор. Текст главы будет переводиться по частям, поэтому его нужно
 разделить на части, каждая из которых цельна по смыслу и понятна без соседних.
 
@@ -79,13 +81,15 @@ async def cut_pieces(
     allowed_tags_name = [segment.tag_name for segment in text_segments[:-1]]
     max_cuts = min(max_cuts, len(allowed_tags_name))
 
-    user_content = [{
-        "type": "text",
-        "text": (
-            f"Разрешённые метки для разреза: {', '.join(allowed_tags_name)}\n\n"
-            f"Текстовые сегменты для смыслового разделения:\n\n{segments_text}"
-        ),
-    }]
+    user_content = [
+        {
+            "type": "text",
+            "text": (
+                f"Разрешённые метки для разреза: {', '.join(allowed_tags_name)}\n\n"
+                f"Текстовые сегменты для смыслового разделения:\n\n{segments_text}"
+            ),
+        }
+    ]
 
     try:
         result: dict = await client.send_request(
@@ -115,21 +119,25 @@ async def cut_pieces(
     context, specific = "", ""
 
     for cut_index in sorted(cuts):
-        batches.append(TranslateBatch(
-            text_segments=text_segments[start: cut_index + 1],
-            context=context,
-            specific=specific,
-        ))
+        batches.append(
+            TranslateBatch(
+                text_segments=text_segments[start : cut_index + 1],
+                context=context,
+                specific=specific,
+            )
+        )
         start = cut_index + 1
         context = cuts[cut_index]["context"]
         specific = cuts[cut_index]["specific"]
 
     # Хвост: всё после последнего разреза. Если разрезов нет, это вся глава.
-    batches.append(TranslateBatch(
-        text_segments=text_segments[start:],
-        context=context,
-        specific=specific,
-    ))
+    batches.append(
+        TranslateBatch(
+            text_segments=text_segments[start:],
+            context=context,
+            specific=specific,
+        )
+    )
 
     # Проверка: нет пустых кусков, и вместе они покрывают все сегменты
     total = sum(len(batch.text_segments) for batch in batches)
@@ -137,8 +145,13 @@ async def cut_pieces(
     if has_empty or total != len(text_segments):
         logger.error(
             "Некорректное разбиение: кусков=%d, сегментов в кусках=%d, всего сегментов=%d, разрезы=%s",
-            len(batches), total, len(text_segments), sorted(cuts),
+            len(batches),
+            total,
+            len(text_segments),
+            sorted(cuts),
         )
-        raise LLMResponseParseError("Разбиение главы потеряло или продублировало сегменты")
+        raise LLMResponseParseError(
+            "Разбиение главы потеряло или продублировало сегменты"
+        )
 
     return batches

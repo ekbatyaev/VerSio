@@ -7,9 +7,13 @@ from src.backend.ai.agents.translator.task import translate_segments
 translation_semaphore = asyncio.Semaphore(settings.max_translator_workers)
 
 
-async def translate_text(batches: list[TranslateBatch],
-                         language_from: str, language_to: str,
-                         book_description: str | None, temperature: float | None) -> TranslationStatus:
+async def translate_text(
+    batches: list[TranslateBatch],
+    language_from: str,
+    language_to: str,
+    book_description: str | None,
+    temperature: float | None,
+) -> TranslationStatus:
     n = len(batches)
     done_segments = 0
 
@@ -23,16 +27,24 @@ async def translate_text(batches: list[TranslateBatch],
                 context=batch.context,
                 specific=batch.specific,
                 book_description=book_description,
-                temperature=temperature
+                temperature=temperature,
             )
         done_segments += len(batch.text_segments)
-        logger.info(f"Батч {batch_number}/{len(batches)}: переведено {status.processed} из {len(batch.text_segments)}, "
-                    f"ошибок {status.error}. Обработано всего: {done_segments} из {n}.")
+        logger.info(
+            f"Батч {batch_number}/{len(batches)}: переведено {status.processed} из {len(batch.text_segments)}, "
+            f"ошибок {status.error}. Обработано всего: {done_segments} из {n}."
+        )
         return status
 
-    statuses = await asyncio.gather(*(run_batch(i, batch) for i, batch in enumerate(batches, start=1)))
+    statuses = await asyncio.gather(
+        *(run_batch(i, batch) for i, batch in enumerate(batches, start=1))
+    )
 
-    total = TranslationStatus(processed=sum(s.processed for s in statuses),
-                              error=sum(s.error for s in statuses))
-    logger.info(f"Перевод завершён: переведено {total.processed} из {n}, ошибок {total.error}.")
+    total = TranslationStatus(
+        processed=sum(s.processed for s in statuses),
+        error=sum(s.error for s in statuses),
+    )
+    logger.info(
+        f"Перевод завершён: переведено {total.processed} из {n}, ошибок {total.error}."
+    )
     return total

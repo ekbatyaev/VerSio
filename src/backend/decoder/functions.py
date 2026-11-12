@@ -9,6 +9,7 @@ from src.backend.decoder.formats import epub
 Decoder = Callable[[Path], Book]
 DECODERS: dict[str, Decoder] = {}
 
+
 class DecodeError(Exception):
     """Файл не удалось разобрать: битый архив, нет нужных файлов, невалидный XML."""
 
@@ -21,7 +22,9 @@ def register_decoder(*extensions: str):
                 raise ValueError(f"Декодер для {ext} уже зарегистрирован")
             DECODERS[ext] = func
         return func
+
     return decorator
+
 
 @register_decoder(".epub")
 def _decode_epub(path: Path) -> Book:
@@ -53,17 +56,21 @@ async def file_decoder(file_path: str | Path) -> Book:
     if decoders_set != settings.supported_formats_set:
         logger.warning(
             f"Описанные в .env форматы не совпадают с набором форматов декораторов:"
-            f" {decoders_set ^ settings.supported_formats_set}")
+            f" {decoders_set ^ settings.supported_formats_set}"
+        )
 
     decoder = DECODERS.get(extension)
 
     if decoder is None:
-        raise ValueError(f"Неподдерживаемый формат файла для обработки: "
-                         f"{extension or 'без расширения'}")
+        raise ValueError(
+            f"Неподдерживаемый формат файла для обработки: "
+            f"{extension or 'без расширения'}"
+        )
 
     logger.info(f"Декодирую {path.name} как {extension}")
 
     return await asyncio.to_thread(decoder, path)
+
 
 async def main():
     book = await file_decoder(settings.temp_files_path / "Molot_Vulkana.epub")
@@ -76,6 +83,7 @@ async def main():
     for chapter in book.chapters:
         print(chapter.title)
         print(chapter.body())
+
 
 if __name__ == "__main__":
     asyncio.run(main())

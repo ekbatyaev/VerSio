@@ -47,7 +47,11 @@ class Settings(BaseSettings):
 
     @property
     def supported_formats_set(self) -> set[str]:
-        return {ext.strip().lower() for ext in self.supported_formats.split(",") if ext.strip()}
+        return {
+            ext.strip().lower()
+            for ext in self.supported_formats.split(",")
+            if ext.strip()
+        }
 
 
 settings = Settings()

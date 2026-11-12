@@ -6,6 +6,7 @@ import re
 
 BODY_RE = re.compile(rb"<body\b.*?</body>", re.S)
 
+
 class Book(BaseModel):
     file_type: str
     source_path: Path
@@ -22,14 +23,19 @@ class Book(BaseModel):
             raise ValueError(f"Неподдерживаемый формат: {value}")
         return value
 
+
 class EpubChapter(BaseModel):
     index: int
     path: str
     manifest_id: str
-    linear: bool = True         # False — вспомогательная глава вне основного чтения (сноски и т.п.)
-    title: str | None = None    # первый заголовок главы — для логов и контекста перевода
-    source: bytes = field(repr=False)   # исходный файл главы байт в байт
-    result: bytes | None = field(default=None, repr=False)  # глава после твоей обработки
+    linear: bool = (
+        True  # False — вспомогательная глава вне основного чтения (сноски и т.п.)
+    )
+    title: str | None = None  # первый заголовок главы — для логов и контекста перевода
+    source: bytes = field(repr=False)  # исходный файл главы байт в байт
+    result: bytes | None = field(
+        default=None, repr=False
+    )  # глава после твоей обработки
 
     def body(self) -> str:
         """<body …>…</body> как есть в файле, строкой."""
@@ -38,7 +44,10 @@ class EpubChapter(BaseModel):
     def set_body(self, new_body: str) -> None:
         """Подставляет новый <body> на место старого. Всё вне body не трогается."""
         m = BODY_RE.search(self.source)
-        self.result = self.source[:m.start()] + new_body.encode("utf-8") + self.source[m.end():]
+        self.result = (
+            self.source[: m.start()] + new_body.encode("utf-8") + self.source[m.end() :]
+        )
+
 
 class EpubBook(Book):
     opf_path: str

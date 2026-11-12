@@ -22,13 +22,18 @@ def register_encoder(*extensions: str):
                 raise ValueError(f"Кодировщик для {ext} уже зарегистрирован")
             ENCODERS[ext] = func
         return func
+
     return decorator
 
 
 @register_encoder(".epub")
 def _encode_epub(book: Book, target: Path) -> Path:
 
-    replacements = {chapter.path: chapter.result for chapter in book.chapters if chapter.result is not None}
+    replacements = {
+        chapter.path: chapter.result
+        for chapter in book.chapters
+        if chapter.result is not None
+    }
 
     logger.info(f"Изменено глав: {len(replacements)} из {len(book.chapters)}")
 
@@ -51,7 +56,8 @@ async def file_encoder(book: Book, target: Path | None = None) -> Path:
     if encoders_set != settings.supported_formats_set:
         logger.warning(
             f"Описанные в .env форматы не совпадают с набором форматов кодировщиков:"
-            f" {encoders_set ^ settings.supported_formats_set}")
+            f" {encoders_set ^ settings.supported_formats_set}"
+        )
 
     encoder = ENCODERS.get(book.file_type)
     if encoder is None:
@@ -63,10 +69,13 @@ async def file_encoder(book: Book, target: Path | None = None) -> Path:
 
 async def main():
     from src.backend.decoder.functions import file_decoder
+
     book = await file_decoder(settings.temp_files_path / "Molot_Vulkana.epub")
 
     for chapter in book.chapters:
-        chapter.set_body(chapter.body())   # «пустая» правка: проверяем, что сборка ничего не трогает
+        chapter.set_body(
+            chapter.body()
+        )  # «пустая» правка: проверяем, что сборка ничего не трогает
     target = await file_encoder(book)
 
     with zipfile.ZipFile(book.source_path) as a, zipfile.ZipFile(target) as b:

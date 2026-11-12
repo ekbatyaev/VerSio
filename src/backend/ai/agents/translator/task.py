@@ -22,7 +22,9 @@ def build_guided_json(keys: list[str]) -> dict:
     }
 
 
-SYSTEM_PROMPT: Final[str] = """\
+SYSTEM_PROMPT: Final[
+    str
+] = """\
 Ты — профессиональный литературный переводчик художественной прозы.
 
 ВХОДНЫЕ ДАННЫЕ
@@ -72,10 +74,15 @@ SYSTEM_PROMPT: Final[str] = """\
 """
 
 
-async def translate_segments(texts: list[TextSegment],
-                             language_from: str, language_to: str,
-                             context: str, specific: str,
-                             book_description: str | None, temperature: float | None) -> TranslationStatus:
+async def translate_segments(
+    texts: list[TextSegment],
+    language_from: str,
+    language_to: str,
+    context: str,
+    specific: str,
+    book_description: str | None,
+    temperature: float | None,
+) -> TranslationStatus:
     """
     Переводит один батч сегментов. Перевод записывается в text_segment.translated_text.
     """
@@ -92,7 +99,7 @@ async def translate_segments(texts: list[TextSegment],
                 "---\n\n"
                 f"Язык оригинала: {language_from}. Целевой язык: {language_to}.\n"
                 f"Сегменты для перевода:\n{json.dumps(dictionary_of_translation, ensure_ascii=False)}"
-            )
+            ),
         }
     ]
 
@@ -103,13 +110,15 @@ async def translate_segments(texts: list[TextSegment],
                 system_prompt=SYSTEM_PROMPT,
                 guided_json=build_guided_json(keys),
                 user_content=user_content,
-                temperature=temperature
+                temperature=temperature,
             )
             translated_text_segments = request_result["translation"]
             missing = set(keys) - set(translated_text_segments)
             if not missing:
                 break
-            logger.warning(f"Попытка {attempt}: в ответе не хватает ключей {sorted(missing)}")
+            logger.warning(
+                f"Попытка {attempt}: в ответе не хватает ключей {sorted(missing)}"
+            )
         except Exception as e:
             logger.exception(f"Попытка {attempt}: ошибка при обработке запроса: {e}")
 
@@ -120,7 +129,9 @@ async def translate_segments(texts: list[TextSegment],
     error = 0
     for text_segment in texts:
         if text_segment.tag_name in translated_text_segments:
-            text_segment.translated_text = translated_text_segments[text_segment.tag_name]
+            text_segment.translated_text = translated_text_segments[
+                text_segment.tag_name
+            ]
             processed += 1
         else:
             text_segment.translated_text = text_segment.original_text
